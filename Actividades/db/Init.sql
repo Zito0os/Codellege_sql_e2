@@ -346,3 +346,155 @@ LEFT JOIN (
     FROM asistencias
     GROUP BY id_empleado
 ) t ON e.id_empleado = t.id_empleado;
+
+
+-- ============================================================
+-- PROCEDIMIENTOS ALMACENADOS PARA EL DASHBOARD
+-- ============================================================
+-- Ejecutar esta sección después de crear e insertar las tablas.
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS sp_usuarios_por_servicio$$
+CREATE PROCEDURE sp_usuarios_por_servicio()
+BEGIN
+    SELECT
+        e.id_empleado,
+        e.nombre,
+        e.departamento,
+        CASE
+            WHEN SUM(CASE WHEN s.nombre_servicio = 'Masaje' THEN 1 ELSE 0 END) > 0
+             AND SUM(CASE WHEN s.nombre_servicio = 'Fisioterapia' THEN 1 ELSE 0 END) > 0 THEN 'Ambos'
+            WHEN SUM(CASE WHEN s.nombre_servicio = 'Masaje' THEN 1 ELSE 0 END) > 0 THEN 'Solo Masaje'
+            WHEN SUM(CASE WHEN s.nombre_servicio = 'Fisioterapia' THEN 1 ELSE 0 END) > 0 THEN 'Solo Fisioterapia'
+            ELSE 'Ninguno'
+        END AS categoria_servicio
+    FROM empleados e
+    LEFT JOIN asistencias a ON e.id_empleado = a.id_empleado
+    LEFT JOIN servicios s ON a.id_servicio = s.id_servicio
+    GROUP BY e.id_empleado, e.nombre, e.departamento
+    ORDER BY e.id_empleado;
+END$$
+
+DROP PROCEDURE IF EXISTS sp_uso_por_departamento$$
+CREATE PROCEDURE sp_uso_por_departamento()
+BEGIN
+    SELECT
+        e.departamento,
+        COUNT(a.id_asistencia) AS total_asistencias,
+        SUM(CASE WHEN s.nombre_servicio = 'Masaje' THEN 1 ELSE 0 END) AS uso_masaje,
+        SUM(CASE WHEN s.nombre_servicio = 'Fisioterapia' THEN 1 ELSE 0 END) AS uso_fisioterapia
+    FROM empleados e
+    LEFT JOIN asistencias a ON e.id_empleado = a.id_empleado
+    LEFT JOIN servicios s ON a.id_servicio = s.id_servicio
+    GROUP BY e.departamento
+    ORDER BY total_asistencias DESC;
+END$$
+
+DROP PROCEDURE IF EXISTS sp_asistencias_por_dia$$
+CREATE PROCEDURE sp_asistencias_por_dia(
+    IN p_fecha_inicio DATE,
+    IN p_fecha_fin DATE
+)
+BEGIN
+    SELECT
+        DAYNAME(a.fecha) AS dia_semana,
+        COUNT(a.id_asistencia) AS total_asistencias,
+        SUM(CASE WHEN s.nombre_servicio = 'Masaje' THEN 1 ELSE 0 END) AS total_masajes,
+        SUM(CASE WHEN s.nombre_servicio = 'Fisioterapia' THEN 1 ELSE 0 END) AS total_fisioterapia
+    FROM asistencias a
+    INNER JOIN servicios s ON a.id_servicio = s.id_servicio
+    WHERE a.fecha BETWEEN p_fecha_inicio AND p_fecha_fin
+    GROUP BY DAYOFWEEK(a.fecha), DAYNAME(a.fecha)
+    ORDER BY total_asistencias DESC;
+END$$
+
+DROP PROCEDURE IF EXISTS sp_resumen_usuarios$$
+CREATE PROCEDURE sp_resumen_usuarios()
+BEGIN
+    SELECT
+        COUNT(*) AS total_empleados,
+        SUM(CASE WHEN COALESCE(t.uso_masaje, 0) > 0 AND COALESCE(t.uso_fisioterapia, 0) > 0 THEN 1 ELSE 0 END) AS usan_ambos,
+        SUM(CASE WHEN COALESCE(t.uso_masaje, 0) > 0 AND COALESCE(t.uso_fisioterapia, 0) = 0 THEN 1 ELSE 0 END) AS solo_masaje,
+        SUM(CASE WHEN COALESCE(t.uso_masaje, 0) = 0 AND COALESCE(t.uso_fisioterapia, 0) > 0 THEN 1 ELSE 0 END) AS solo_fisioterapia,
+        SUM(CASE WHEN COALESCE(t.uso_masaje, 0) = 0 AND COALESCE(t.uso_fisioterapia, 0) = 0 THEN 1 ELSE 0 END) AS no_usan_nada
+    FROM empleados e
+    LEFT JOIN (
+        SELECT
+            id_empleado,
+            SUM(CASE WHEN id_servicio = 1 THEN 1 ELSE 0 END) AS uso_masaje,
+            SUM(CASE WHEN id_servicio = 2 THEN 1 ELSE 0 END) AS uso_fisioterapia
+        FROM asistencias
+        GROUP BY id_empleado
+    ) t ON e.id_empleado = t.id_empleado;
+END$$
+
+DELIMITER ;
+
+-- Ejemplos de ejecución:
+-- CALL sp_usuarios_por_servicio();
+-- CALL sp_uso_por_departamento();
+-- CALL sp_asistencias_por_dia('2026-09-01', '2026-09-30');
+-- CALL sp_resumen_usuarios();
+
+-- ============================================================
+-- VERSIÓN CONSOLIDADA: UN SOLO PROCEDIMIENTO PARA EL DASHBOARD
+-- ============================================================
+DELIMITER $$
+DROP PROCEDURE IF EXISTS sp_usuarios_por_servicio$$
+DROP PROCEDURE IF EXISTS sp_uso_por_departamento$$
+DROP PROCEDURE IF EXISTS sp_asistencias_por_dia$$
+DROP PROCEDURE IF EXISTS sp_resumen_usuarios$$
+DROP PROCEDURE IF EXISTS sp_dashboard_resumen$$
+
+CREATE PROCEDURE sp_dashboard_resumen(
+    IN p_fecha_inicio DATE,
+    IN p_fecha_fin DATE
+)
+BEGIN
+    SELECT e.id_empleado, e.nombre, e.departamento,
+        CASE
+            WHEN SUM(CASE WHEN s.nombre_servicio = 'Masaje' THEN 1 ELSE 0 END) > 0
+             AND SUM(CASE WHEN s.nombre_servicio = 'Fisioterapia' THEN 1 ELSE 0 END) > 0 THEN 'Ambos'
+            WHEN SUM(CASE WHEN s.nombre_servicio = 'Masaje' THEN 1 ELSE 0 END) > 0 THEN 'Solo Masaje'
+            WHEN SUM(CASE WHEN s.nombre_servicio = 'Fisioterapia' THEN 1 ELSE 0 END) > 0 THEN 'Solo Fisioterapia'
+            ELSE 'Ninguno'
+        END AS categoria_servicio
+    FROM empleados e
+    LEFT JOIN asistencias a ON e.id_empleado = a.id_empleado AND a.fecha BETWEEN p_fecha_inicio AND p_fecha_fin
+    LEFT JOIN servicios s ON a.id_servicio = s.id_servicio
+    GROUP BY e.id_empleado, e.nombre, e.departamento
+    ORDER BY e.id_empleado;
+
+    SELECT e.departamento, COUNT(a.id_asistencia) AS total_asistencias,
+        SUM(CASE WHEN s.nombre_servicio = 'Masaje' THEN 1 ELSE 0 END) AS uso_masaje,
+        SUM(CASE WHEN s.nombre_servicio = 'Fisioterapia' THEN 1 ELSE 0 END) AS uso_fisioterapia
+    FROM empleados e
+    LEFT JOIN asistencias a ON e.id_empleado = a.id_empleado AND a.fecha BETWEEN p_fecha_inicio AND p_fecha_fin
+    LEFT JOIN servicios s ON a.id_servicio = s.id_servicio
+    GROUP BY e.departamento ORDER BY total_asistencias DESC;
+
+    SELECT DAYNAME(a.fecha) AS dia_semana, COUNT(a.id_asistencia) AS total_asistencias,
+        SUM(CASE WHEN s.nombre_servicio = 'Masaje' THEN 1 ELSE 0 END) AS total_masajes,
+        SUM(CASE WHEN s.nombre_servicio = 'Fisioterapia' THEN 1 ELSE 0 END) AS total_fisioterapia
+    FROM asistencias a JOIN servicios s ON a.id_servicio = s.id_servicio
+    WHERE a.fecha BETWEEN p_fecha_inicio AND p_fecha_fin
+    GROUP BY DAYOFWEEK(a.fecha), DAYNAME(a.fecha) ORDER BY total_asistencias DESC;
+
+    SELECT COUNT(*) AS total_empleados,
+        SUM(CASE WHEN COALESCE(t.uso_masaje, 0) > 0 AND COALESCE(t.uso_fisioterapia, 0) > 0 THEN 1 ELSE 0 END) AS usan_ambos,
+        SUM(CASE WHEN COALESCE(t.uso_masaje, 0) > 0 AND COALESCE(t.uso_fisioterapia, 0) = 0 THEN 1 ELSE 0 END) AS solo_masaje,
+        SUM(CASE WHEN COALESCE(t.uso_masaje, 0) = 0 AND COALESCE(t.uso_fisioterapia, 0) > 0 THEN 1 ELSE 0 END) AS solo_fisioterapia,
+        SUM(CASE WHEN COALESCE(t.uso_masaje, 0) = 0 AND COALESCE(t.uso_fisioterapia, 0) = 0 THEN 1 ELSE 0 END) AS no_usan_nada
+    FROM empleados e LEFT JOIN (
+        SELECT id_empleado,
+            SUM(CASE WHEN id_servicio = 1 THEN 1 ELSE 0 END) AS uso_masaje,
+            SUM(CASE WHEN id_servicio = 2 THEN 1 ELSE 0 END) AS uso_fisioterapia
+        FROM asistencias WHERE fecha BETWEEN p_fecha_inicio AND p_fecha_fin GROUP BY id_empleado
+    ) t ON e.id_empleado = t.id_empleado;
+END$$
+
+DELIMITER ;
+
+-- Llamada única:
+-- CALL sp_dashboard_resumen('2026-09-01', '2026-09-30');
