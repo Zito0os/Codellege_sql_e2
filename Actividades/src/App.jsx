@@ -1,122 +1,16 @@
 import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
 import './App.css'
 
+const rows = [['Ana Gómez','Tecnología','Masaje','08 sep 2026','Completada'],['Carlos López','Recursos Humanos','Fisioterapia','10 sep 2026','Completada'],['Mariana Ruiz','Finanzas','Masaje','10 sep 2026','Pendiente'],['Sofía Hernández','Ventas','Ambos servicios','15 sep 2026','Completada'],['Roberto Díaz','Operaciones','Fisioterapia','17 sep 2026','Completada']]
+const departments = [['Tecnología',86,'88%'],['Recursos Humanos',72,'76%'],['Finanzas',64,'69%'],['Ventas',58,'63%'],['Operaciones',43,'51%']]
+const Icon = ({children}) => <span className="icon">{children}</span>
 function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+  const [active,setActive] = useState('Resumen'); const [query,setQuery] = useState(''); const [service,setService] = useState('Todos los servicios')
+  const filtered = rows.filter(r => r.join(' ').toLowerCase().includes(query.toLowerCase()) && (service === 'Todos los servicios' || r[2].includes(service)))
+  return <div className="app-shell"><aside className="sidebar"><div className="brand"><span className="brand-mark">+</span>Vitalia<span className="brand-dot">.</span></div><p className="workspace-label">CENTRO DE BIENESTAR</p><nav>{['Resumen','Asistencias','Empleados','Servicios'].map(item => <button className={active===item?'nav-item active':'nav-item'} onClick={()=>setActive(item)} key={item}><Icon>{item==='Resumen'?'⌂':item==='Asistencias'?'◷':item==='Empleados'?'♙':'◈'}</Icon>{item}</button>)}</nav><div className="sidebar-bottom"><button className="nav-item"><Icon>⚙</Icon>Configuración</button><div className="profile"><div className="avatar">JD</div><div><strong>Juan Díaz</strong><small>Administrador</small></div><span>⌄</span></div></div></aside><main className="main-content"><header className="topbar"><div className="mobile-brand">Vitalia<span className="brand-dot">.</span></div><div className="top-actions"><button className="notification">♢<span/></button><div className="avatar small">JD</div></div></header><section className="page-heading"><div><p className="eyebrow">MIÉRCOLES, 17 DE SEPTIEMBRE DE 2026</p><h1>Resumen general</h1><p className="subtitle">Conoce el comportamiento de los usuarios y el rendimiento de tus servicios.</p></div><button className="export-btn">⇩ &nbsp;Exportar reporte</button></section><div className="period-bar"><span>Periodo de análisis</span><button className="period">Este mes <span>⌄</span></button><span className="updated">● Datos actualizados hace 5 min</span></div>
+{active==='Resumen'?<><section className="metrics-grid"><Metric icon="♙" color="lilac" title="Usuarios registrados" value="200" change="↗ 12.4%"/><Metric icon="◷" color="peach" title="Asistencias totales" value="326" change="↗ 8.7%"/><Metric icon="✦" color="mint" title="Uso de servicios" value="81.5%" change="↗ 4.2%"/><Metric icon="⌁" color="blue" title="Empleados activos" value="124" change="— 0.8%"/></section><section className="charts-grid"><article className="panel usage-panel"><Heading title="Uso de servicios" subtitle="Comparativa de asistencias durante el mes"/><div className="legend"><span><i className="dot massage"/>Masaje <b>184</b></span><span><i className="dot physio"/>Fisioterapia <b>142</b></span></div><div className="chart"><div className="y-labels"><span>100</span><span>75</span><span>50</span><span>25</span><span>0</span></div><div className="chart-area"><div className="grid-lines"><i/><i/><i/><i/><i/></div><div className="bars">{[55,70,42,78,64,86,60,73,68,92,78,84].map((h,i)=><div className="bar-group" key={i}><div className="bar massage" style={{height:`${h*.72}px`}}/><div className="bar physio" style={{height:`${h*.55}px`}}/><small>{i*2+1}</small></div>)}</div></div></div><div className="chart-foot"><span>Sep 2026</span><span>1 sep — 30 sep</span></div></article><article className="panel distribution-panel"><Heading title="Distribución de usuarios" subtitle="Preferencia por servicio"/><div className="donut-wrap"><div className="donut"><div><strong>200</strong><small>usuarios</small></div></div></div><div className="distribution-list"><div><i className="dot massage"/>Solo masaje <b>96 <small>48%</small></b></div><div><i className="dot physio"/>Solo fisioterapia <b>62 <small>31%</small></b></div><div><i className="dot both"/>Ambos servicios <b>42 <small>21%</small></b></div></div></article></section><section className="bottom-grid"><article className="panel"><Heading title="Uso por departamento" subtitle="Asistencias registradas por área"/><div className="department-list">{departments.map(([n,v,p])=><div className="department-row" key={n}><span>{n}</span><div className="progress"><i style={{width:`${v}%`}}/></div><b>{p}</b></div>)}</div></article><article className="panel insight-panel"><div className="insight-icon">✦</div><p className="eyebrow">HALLAZGO PRINCIPAL</p><h2>El masaje es el servicio más solicitado</h2><p>Representa el <strong>56.4%</strong> de las asistencias del periodo. Considera ampliar los horarios disponibles.</p><button className="link-button">Explorar análisis →</button></article></section></>:<section className="panel placeholder-panel"><div className="insight-icon">✦</div><h2>{active}</h2><p>Esta vista está preparada para conectarse con los datos reales del backend.</p><button className="link-button" onClick={()=>setActive('Resumen')}>Volver al resumen →</button></section>}
+<section className="panel activity-panel"><Heading title="Actividad reciente" subtitle="Últimas asistencias registradas"/><div className="filters"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar usuario..."/><select value={service} onChange={e=>setService(e.target.value)}><option>Todos los servicios</option><option>Masaje</option><option>Fisioterapia</option></select><button className="filter-btn">☷</button></div><div className="table-wrap"><table><thead><tr><th>USUARIO</th><th>DEPARTAMENTO</th><th>SERVICIO</th><th>FECHA</th><th>ESTADO</th></tr></thead><tbody>{filtered.map(r=><tr key={r[0]}>{r.map((c,i)=><td key={c}>{i===0&&<span className="table-avatar">{c.split(' ').map(n=>n[0]).join('').slice(0,2)}</span>}{c}{i===4&&<span className={c==='Completada'?'status complete':'status pending'}>{c}</span>}</td>)}</tr>)}</tbody></table></div></section></main></div>
 }
-
+function Metric({icon,color,title,value,change}){return <article className="metric-card"><div className={`metric-icon ${color}`}>{icon}</div><div><p>{title}</p><strong>{value}</strong><small className={change.startsWith('↗')?'positive':'neutral'}>{change} <em>vs. mes anterior</em></small></div></article>}
+function Heading({title,subtitle}){return <div className="panel-heading"><div><h2>{title}</h2><p>{subtitle}</p></div><button className="more">•••</button></div>}
 export default App
