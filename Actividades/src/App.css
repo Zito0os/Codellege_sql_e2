@@ -7,7 +7,18 @@
 }
 
 .analysis-filters {
-    align-items: center
+    align-items: center;
+    flex-wrap: wrap
+}
+
+.analysis-filters input {
+    flex: 1 1 190px;
+    min-width: 190px
+}
+
+.analysis-filters select {
+    flex: 1 1 220px;
+    min-width: 220px
 }
 
 .result-count {
@@ -722,7 +733,12 @@
 .panel-heading {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start
+    align-items: flex-start;
+    gap: 16px
+}
+
+.panel-heading > div {
+    min-width: 0
 }
 
 .panel h2 {
@@ -741,7 +757,8 @@
     border: 0;
     background: none;
     color: #aaaec0;
-    letter-spacing: 3px
+    letter-spacing: 3px;
+    flex-shrink: 0
 }
 
 .legend {
@@ -1020,7 +1037,7 @@
 
 .table-wrap {
     overflow-x: auto;
-    margin-top: -37px
+    margin-top: 18px
 }
 
 table {
