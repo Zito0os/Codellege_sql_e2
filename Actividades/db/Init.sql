@@ -24,7 +24,6 @@ CREATE TABLE asistencias (
     FOREIGN KEY (id_servicio) REFERENCES servicios(id_servicio)
 );
 
-
 -- Insertar los dos servicios
 INSERT INTO servicios (nombre_servicio) VALUES ('Masaje'), ('Fisioterapia');
 
@@ -498,3 +497,80 @@ DELIMITER ;
 
 -- Llamada única:
 -- CALL sp_dashboard_resumen('2026-09-01', '2026-09-30');
+
+-- ============================================================
+-- PROCEDIMIENTO PARA REGISTRAR UN SERVICIO
+-- ============================================================
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS sp_registrar_servicio$$
+
+CREATE PROCEDURE sp_registrar_servicio(
+    IN p_id_empleado INT,
+    IN p_id_servicio INT,
+    IN p_fecha DATE
+)
+BEGIN
+    DECLARE v_total_semana INT DEFAULT 0;
+    DECLARE v_empleado_existe INT DEFAULT 0;
+    DECLARE v_servicio_existe INT DEFAULT 0;
+    DECLARE v_lunes DATE;
+    DECLARE v_domingo DATE;
+
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+
+    SELECT COUNT(*) INTO v_empleado_existe
+    FROM empleados
+    WHERE id_empleado = p_id_empleado;
+
+    IF v_empleado_existe = 0 THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'El empleado seleccionado no existe.';
+    END IF;
+
+    SELECT id_empleado INTO v_empleado_existe
+    FROM empleados
+    WHERE id_empleado = p_id_empleado
+    FOR UPDATE;
+
+    SELECT COUNT(*) INTO v_servicio_existe
+    FROM servicios
+    WHERE id_servicio = p_id_servicio;
+
+    IF v_servicio_existe = 0 THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'El servicio seleccionado no existe.';
+    END IF;
+
+    SET v_lunes = DATE_SUB(p_fecha, INTERVAL WEEKDAY(p_fecha) DAY);
+    SET v_domingo = DATE_ADD(v_lunes, INTERVAL 6 DAY);
+
+    SELECT COUNT(*) INTO v_total_semana
+    FROM asistencias
+    WHERE id_empleado = p_id_empleado
+      AND fecha BETWEEN v_lunes AND v_domingo;
+
+    IF v_total_semana >= 2 THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Este empleado ya tiene 2 servicios asignados en la semana seleccionada.';
+    END IF;
+
+    INSERT INTO asistencias (id_empleado, id_servicio, fecha)
+    VALUES (p_id_empleado, p_id_servicio, p_fecha);
+
+    COMMIT;
+
+    SELECT LAST_INSERT_ID() AS id_asistencia,
+        'Servicio asignado correctamente.' AS mensaje;
+END$$
+
+DELIMITER ;
+
+-- Ejemplo:
+-- CALL sp_registrar_servicio(1, 2, '2026-09-17');

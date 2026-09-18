@@ -10,3 +10,15 @@ async function request(path) {
 export const getDashboard = () => request(`/dashboard?${period}`)
 export const getAttendance = (department = '') => request(`/asistencias?${period}${department ? `&departamento=${encodeURIComponent(department)}` : ''}`)
 export const getServices = () => request(`/servicios?${period}`)
+export const getServiceRecords = () => request('/servicios/registro')
+
+export async function createServiceAssignment(assignment) {
+    const response = await fetch(`${apiUrl}/servicios/registro`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(assignment),
+    })
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error || 'No fue posible asignar el servicio.')
+    return data
+}
